@@ -1,0 +1,134 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Hive Session Agent
+
+Resources:
+  SessionAvailabilityTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: SessionAvailabilityTopic
+
+  SessionAgentPinpointSMSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: SessionAgentPinpointSMSTopic
+
+  HiveSessionAvailabilityNotifierTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: HiveSessionAvailabilityNotifierItem
+      KeySchema:
+        - AttributeName: sessionDateAndLocation
+          KeyType: HASH
+        - AttributeName: phoneNumber
+          KeyType: RANGE
+      AttributeDefinitions:
+        - AttributeName: sessionDateAndLocation
+          AttributeType: S
+        - AttributeName: phoneNumber
+          AttributeType: S
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+
+  SessionSchedulePollerLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: SessionSchedulePollerLambdaPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: SNSPublish
+                Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource:
+                  - !Ref SessionAvailabilityTopic
+              - Sid: CloudWatchLogs
+                Effect: Allow
+                Action:
+                  - logs:Create*
+                  - logs:PutLogEvents
+                Resource:
+                  - "*"
+
+  SessionSubscriptionNotifierLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: SessionSchedulePollerLambdaPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: DDBReadWrite
+                Effect: Allow
+                Action:
+                  - dynamodb:UpdateItem
+                  - dynamodb:Get*
+                  - dynamodb:Query
+                  - dynamodb:DescribeTable
+                Resource:
+                  - !GetAtt HiveSessionAvailabilityNotifierTable.Arn
+              - Sid: SNSWrite
+                Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource:
+                  - "*"
+              - Sid: CloudWatchLogs
+                Effect: Allow
+                Action:
+                  - logs:Create*
+                  - logs:PutLogEvents
+                Resource:
+                  - "*"
+
+  SessionSchedulePollerLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: build/libs/RGProPoller-1.0-SNAPSHOT-all.jar
+      Handler: com.francisbailey.hive.sessionagent.lambda.SessionSchedulePollerLambda::handleRequest
+      Runtime: java8
+      MemorySize: 512
+      Timeout: 30
+      Role: !GetAtt SessionSchedulePollerLambdaRole.Arn
+      Environment:
+        Variables:
+          SESSION_AGENT_TOPIC_ARN: !Ref SessionAvailabilityTopic
+
+  SessionSubscriptionNotifierLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: build/libs/RGProPoller-1.0-SNAPSHOT-all.jar
+      Handler: com.francisbailey.hive.sessionagent.lambda.SessionSubscriptionNotifierLambda::handleRequest
+      Runtime: java8
+      MemorySize: 512
+      Timeout: 10
+      Role: !GetAtt SessionSubscriptionNotifierLambdaRole.Arn
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic:
+              Ref: SessionAvailabilityTopic

@@ -1,0 +1,67 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.4.21'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.4.21'
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
+}
+
+group 'com.francisbailey'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+sourceCompatibility = 1.8
+
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+
+shadowJar {
+    transform(com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer)
+}
+
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    implementation "io.ktor:ktor-client-core:1.5.1"
+    implementation "io.ktor:ktor-client-cio:1.5.1"
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1"
+    implementation "org.jsoup:jsoup:1.13.1"
+    implementation "com.amazonaws:aws-java-sdk-dynamodb:1.11.898"
+    implementation "software.amazon.awssdk:sqs:2.15.81"
+    implementation "software.amazon.awssdk:sns:2.15.81"
+    implementation "software.amazon.awssdk:pinpoint:2.15.81"
+    implementation "io.github.microutils:kotlin-logging:1.12.0"
+    implementation "com.amazonaws:aws-lambda-java-core:1.2.1"
+    implementation "com.amazonaws:aws-lambda-java-events:3.1.0"
+    implementation "org.apache.logging.log4j:log4j-api:2.13.0"
+    implementation "org.apache.logging.log4j:log4j-core:2.13.0:"
+    runtimeOnly    "org.apache.logging.log4j:log4j-slf4j18-impl:2.13.0"
+    runtimeOnly    "com.amazonaws:aws-lambda-java-log4j2:1.2.0"
+
+    testImplementation "com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0"
+    testImplementation "org.mockito:mockito-core:3.0.0"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.7.1"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.7.1"
+}
+
+test {
+    useJUnitPlatform()
+}
+
+task buildZip(type: Zip) {
+    from compileJava
+    from processResources
+    into('lib') {
+        from configurations.runtimeClasspath
+    }
+}

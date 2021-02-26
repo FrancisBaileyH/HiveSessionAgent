@@ -28,8 +28,11 @@ class SessionSubscriptionNotifierLambda: RequestHandler<SNSEvent, Unit> {
     private val sessionSubscriptionCheckerHandler = SessionSubscriptionNotifierHandler(sessionAvailabilityNotifierDAO, snsClient)
 
     override fun handleRequest(input: SNSEvent, context: Context) {
+        log.info { "Processing: ${input.records.size} event(s)" }
+
         input.records.forEach { payload ->
             val event = Json.decodeFromString<SessionAvailabilityEvent>(payload.sns.message)
+            log.info { "Received the following event: ${payload.sns.message}" }
             sessionSubscriptionCheckerHandler.handleRequest(event)
         }
     }
@@ -43,6 +46,7 @@ internal class SessionSubscriptionNotifierHandler(
 
     fun handleRequest(event: SessionAvailabilityEvent) {
         val subscribers = sessionAvailabilityNotifierDAO.getNotificationSubscriptions(event.sessionDate, event.location)
+        log.info { "Found ${subscribers.size} subscriber(s) for ${event.location.fullName} on: ${event.sessionDate}" }
 
         subscribers
             .filterNot { it.hasBeenNotified }

@@ -132,3 +132,21 @@ Resources:
           Properties:
             Topic:
               Ref: SessionAvailabilityTopic
+
+  SessionSchedulePollerEvent:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: "cron(0/10 0-15 ? * * *)"
+      State: "ENABLED"
+      Targets:
+        - Arn: !GetAtt SessionSchedulePollerLambda.Arn
+          Id: "SessionSchedulePollingTarget"
+
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SessionSchedulePollerLambda
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt SessionSchedulePollerEvent.Arn
+

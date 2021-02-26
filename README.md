@@ -1,14 +1,18 @@
+## Hive Session Agent
 ### About
-A *WIP* SMS chatbot that enables you to create alerts for climbing sessions at the Hive. This way there's no need to refresh the page periodically in the hopes that an opening appears. You will be notified within 10 minutes if an opening appears. It can also be used to set a reminder for future climbing sessions that aren't available for booking yet.
+The Hive is a popular set of climbing gyms located in the greater Vancouver area. Since COVID-19 started, all climbing sessions must be reserved through a booking system. Often times, the more popular gym sessions will book up immediately or require you to monitor for a session to open up.
 
+As a result, I've create the "Hive Session Agent". It's a basic SMS chatbot that enables you to create alerts for climbing sessions at the Hive. When you create an alert, you'll be notified within 10 minutes if an opening appears. It can also be used to set a reminder for future climbing sessions that aren't available for booking yet.
+
+### Architecture
+For this project, I've gone with an entirely serverless workflow as outlined below:
+![snapshot](assets/HiveSessionAgent.jpg)
 
 ### Milestones
-- Hive Schedule Polling [Done]
-- Hive Session Notification [Partial]
-  - Needs to use Pinpoint for two messaging. Works with SNS currently
-- Hive Session SMS Alert Creation [In Progress]
-- Hive Session SMS Allow List [Not Started]
-- Hive Schedule 
+- Hive Schedule Polling **[DONE]**
+- Hive Session Notification **[DONE]**
+- Hive Session SMS Alert Creation **[DONE]**
+- Hive Session SMS Allow List **[DONE]**
 
 
 ### Setup

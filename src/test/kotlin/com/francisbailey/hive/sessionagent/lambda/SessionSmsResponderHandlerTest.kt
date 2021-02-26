@@ -12,7 +12,7 @@ import com.nhaarman.mockitokotlin2.whenever
 import java.time.LocalDateTime
 import org.junit.jupiter.api.Test
 
-class SmsResponderBotHandlerTest {
+class SessionSmsResponderHandlerTest {
 
     private val smsAllowListDAO = mock<SMSAllowListDAO> {
         on(mock.isAllowed(any())).thenReturn(true)
@@ -22,16 +22,16 @@ class SmsResponderBotHandlerTest {
 
     private val smsSenderClient = mock<SMSSenderClient>()
 
-    private val smsResponderBotHandler = SmsResponderBotHandler(smsSenderClient, sessionAvailabilityNotifierDAO, smsAllowListDAO, false)
+    private val smsResponderBotHandler = SessionSmsResponderHandler(smsSenderClient, sessionAvailabilityNotifierDAO, smsAllowListDAO, false)
 
-    private val smsResponderBotHandlerWithAllowList = SmsResponderBotHandler(smsSenderClient, sessionAvailabilityNotifierDAO, smsAllowListDAO, true)
+    private val smsResponderBotHandlerWithAllowList = SessionSmsResponderHandler(smsSenderClient, sessionAvailabilityNotifierDAO, smsAllowListDAO, true)
 
     private val phoneNumber = "+1231231234"
 
     @Test
     fun `creates new subscription when correctly formatted create alert text is received`() {
         val date = "2021-02-11"
-        val message = "CreateAlert for PoCo on $date for 11:00AM to 1:00PM"
+        val message = "CreateAlert from PoCo on $date for 11:00AM to 1:00PM"
         val expectedStartTime = LocalDateTime.parse("${date}T11:00")
         val expectedEndTime = LocalDateTime.parse("${date}T13:00")
         smsResponderBotHandler.handleRequest(phoneNumber, message)
@@ -73,7 +73,7 @@ class SmsResponderBotHandlerTest {
     @Test
     fun `passes through when number is allow listed`() {
         val date = "2021-02-11"
-        val message = "CreateAlert for PoCo on $date for 11:00AM to 1:00PM"
+        val message = "CreateAlert from PoCo on $date for 11:00AM to 1:00PM"
         val expectedStartTime = LocalDateTime.parse("${date}T11:00")
         val expectedEndTime = LocalDateTime.parse("${date}T13:00")
         smsResponderBotHandlerWithAllowList.handleRequest(phoneNumber, message)

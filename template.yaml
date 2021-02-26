@@ -150,11 +150,13 @@ Resources:
               - Sid: DDBRead
                 Effect: Allow
                 Action:
+                  - dynamodb:UpdateItem
                   - dynamodb:Get*
                   - dynamodb:Query
                   - dynamodb:DescribeTable
                 Resource:
                   - !GetAtt SMSAlowListTable.Arn
+                  - !GetAtt HiveSessionAvailabilityNotifierTable.Arn
               - Sid: SMSWrite
                 Effect: Allow
                 Action:
@@ -242,7 +244,7 @@ Resources:
   SessionSchedulePollerEvent:
     Type: AWS::Events::Rule
     Properties:
-      ScheduleExpression: "cron(0/10 0-15 ? * * *)"
+      ScheduleExpression: "cron(0/10 16-8 ? * * *)"
       State: "ENABLED"
       Targets:
         - Arn: !GetAtt SessionSchedulePollerLambda.Arn

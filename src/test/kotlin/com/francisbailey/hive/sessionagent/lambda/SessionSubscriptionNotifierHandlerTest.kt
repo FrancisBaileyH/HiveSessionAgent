@@ -52,7 +52,7 @@ class SessionSubscriptionNotifierHandlerTest {
 
         whenever(sessionAvailabilityNotifierDAO.getNotificationSubscriptions(any(), any())).thenReturn(listOf(item))
         sessionSubscriptionNotifierHandler.handleRequest(defaultEvent)
-        verify(smsSenderClient).sendMessage("An opening at the PoCo location has just appeared. Available session(s): 10:00 - 12:00", item.phoneNumber)
+        verify(smsSenderClient).sendMessage("An opening at the PoCo location has just appeared for: 2021-02-26. Available session(s): 10:00 - 12:00", item.phoneNumber)
         verify(sessionAvailabilityNotifierDAO).save(eq(item.apply { this.hasBeenNotified = true }))
     }
 

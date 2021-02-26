@@ -23,7 +23,7 @@ import mu.KotlinLogging
 private val log = KotlinLogging.logger {}
 
 
-class SmsResponderBotLambda: RequestHandler<SNSEvent, Unit> {
+class SessionSmsResponderLambda: RequestHandler<SNSEvent, Unit> {
 
     private val allowListEnabled: Boolean = System.getenv("SESSION_AGENT_ALLOW_LIST_ENABLED")?.toBoolean() ?: true
 
@@ -37,7 +37,7 @@ class SmsResponderBotLambda: RequestHandler<SNSEvent, Unit> {
 
     private val smsAllowListDAO = SMSAllowListDAO(dynamoDBClient)
 
-    private val smsChatBotHandler = SmsResponderBotHandler(smsSenderClient, sessionAvailabilityNotifierDAO, smsAllowListDAO, allowListEnabled)
+    private val smsChatBotHandler = SessionSmsResponderHandler(smsSenderClient, sessionAvailabilityNotifierDAO, smsAllowListDAO, allowListEnabled)
 
     override fun handleRequest(input: SNSEvent, context: Context) {
         val snsMessage = input.records.first().sns.message
@@ -48,7 +48,7 @@ class SmsResponderBotLambda: RequestHandler<SNSEvent, Unit> {
 }
 
 
-class SmsResponderBotHandler(
+class SessionSmsResponderHandler(
     private val smsSenderClient: SMSSenderClient,
     private val sessionAvailabilityNotifierDAO: SessionAvailabilityNotifierDAO,
     private val smsAllowListDAO: SMSAllowListDAO,

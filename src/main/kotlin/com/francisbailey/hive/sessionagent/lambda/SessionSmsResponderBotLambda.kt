@@ -9,6 +9,7 @@ import com.francisbailey.hive.sessionagent.event.PinpointSMSEvent
 import com.francisbailey.hive.sessionagent.sms.PinpointClientConfig
 import com.francisbailey.hive.sessionagent.sms.PinpointSMSSenderClient
 import com.francisbailey.hive.sessionagent.sms.SMSSenderClient
+import com.francisbailey.hive.sessionagent.store.SMSAllowListDAO
 import com.francisbailey.hive.sessionagent.store.SessionAvailabilityNotifierDAO
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -24,6 +25,8 @@ private val log = KotlinLogging.logger {}
 
 class SmsResponderBotLambda: RequestHandler<SNSEvent, Unit> {
 
+    private val allowListEnabled: Boolean = System.getenv("SESSION_AGENT_ALLOW_LIST_ENABLED")?.toBoolean() ?: true
+
     private val pinpointClientConfig = PinpointClientConfig()
 
     private val smsSenderClient = PinpointSMSSenderClient(pinpointClientConfig)
@@ -32,7 +35,9 @@ class SmsResponderBotLambda: RequestHandler<SNSEvent, Unit> {
 
     private val sessionAvailabilityNotifierDAO = SessionAvailabilityNotifierDAO(dynamoDBClient)
 
-    private val smsChatBotHandler = SmsResponderBotHandler(smsSenderClient, sessionAvailabilityNotifierDAO)
+    private val smsAllowListDAO = SMSAllowListDAO(dynamoDBClient)
+
+    private val smsChatBotHandler = SmsResponderBotHandler(smsSenderClient, sessionAvailabilityNotifierDAO, smsAllowListDAO, allowListEnabled)
 
     override fun handleRequest(input: SNSEvent, context: Context) {
         val snsMessage = input.records.first().sns.message
@@ -45,22 +50,32 @@ class SmsResponderBotLambda: RequestHandler<SNSEvent, Unit> {
 
 class SmsResponderBotHandler(
     private val smsSenderClient: SMSSenderClient,
-    private val sessionAvailabilityNotifierDAO: SessionAvailabilityNotifierDAO
+    private val sessionAvailabilityNotifierDAO: SessionAvailabilityNotifierDAO,
+    private val smsAllowListDAO: SMSAllowListDAO,
+    private val allowListEnabled: Boolean
 ) {
     fun handleRequest(origin: String, smsMessageBody: String) {
+        log.info { "Received message: $smsMessageBody from: $origin" }
+
+        if (allowListEnabled && !smsAllowListDAO.isAllowed(origin)) {
+            log.warn { "$origin is not enabled for this resource" }
+            smsSenderClient.sendMessage("Sorry you are not registered to use this service. Cannot complete request.", origin)
+        }
+
         when {
             smsMessageBody.startsWith("CreateAlert") -> handleCreateAlert(origin, smsMessageBody)
             else -> smsSenderClient.sendMessage("Unknown command. $HELP_MESSAGE", origin)
         }
     }
 
+    // CreateAlert for <Location> on <date> from <time> to <time>
     private fun handleCreateAlert(origin: String, message: String) = try {
         val messageComponents = message.split(" ")
 
-        val location = HiveLocation.valueOf(messageComponents[2])
+        val location = HiveLocation.valueOf(messageComponents[2].toUpperCase())
         val date = LocalDate.parse(messageComponents[4])
-        val startTime = LocalTime.parse(messageComponents[5].toUpperCase(), formatter)
-        val endTime = LocalTime.parse(messageComponents[7].toUpperCase(), formatter)
+        val startTime = LocalTime.parse(messageComponents[6].toUpperCase(), formatter)
+        val endTime = LocalTime.parse(messageComponents[8].toUpperCase(), formatter)
 
         val startDateTime = LocalDateTime.of(date, startTime)
         val endDateTime = LocalDateTime.of(date, endTime)
@@ -68,11 +83,12 @@ class SmsResponderBotHandler(
         sessionAvailabilityNotifierDAO.create(location, startDateTime, endDateTime, origin)
         smsSenderClient.sendMessage("Successfully registered alert for: ${location.fullName} on: $date from $startTime to $endTime", origin)
     } catch (e: Exception) {
-        smsSenderClient.sendMessage("Failed to register alert. Please try again.", origin)
+        log.error(e) { "Failed to process message" }
+        smsSenderClient.sendMessage("Failed to register alert. Please try again", origin)
     }
 
     companion object {
-        private val formatter = DateTimeFormatter.ofPattern("hha")
+        private val formatter = DateTimeFormatter.ofPattern("h:mma")
         private val HELP_MESSAGE = "To create an alert type: CreateAlert for <Location> on <Date> from <Start Time> to <End Time>"
     }
 }

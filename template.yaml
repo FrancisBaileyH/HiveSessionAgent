@@ -3,6 +3,17 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   Hive Session Agent
 
+Parameters:
+  PinpointAppIdParameter:
+    Type: String
+    Description: Pinpoint App ID for two-way SMS
+  PinpointDedicatedNumberParameter:
+    Type: String
+    Description: Dedicated Pinpoint Number
+  PinpointKeywordParameter:
+    Type: String
+    Description: Pinpoint Keyword
+
 Resources:
   SessionAvailabilityTopic:
     Type: AWS::SNS::Topic
@@ -26,6 +37,21 @@ Resources:
       AttributeDefinitions:
         - AttributeName: sessionDateAndLocation
           AttributeType: S
+        - AttributeName: phoneNumber
+          AttributeType: S
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+
+  SMSAlowListTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: SMSAllowListItem
+      KeySchema:
+        - AttributeName: phoneNumber
+          KeyType: HASH
+      AttributeDefinitions:
         - AttributeName: phoneNumber
           AttributeType: S
       BillingMode: PROVISIONED
@@ -77,7 +103,7 @@ Resources:
             Action:
               - 'sts:AssumeRole'
       Policies:
-        - PolicyName: SessionSchedulePollerLambdaPolicy
+        - PolicyName: SessionSubscriptionNotifierLambdaPolicy
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -90,10 +116,49 @@ Resources:
                   - dynamodb:DescribeTable
                 Resource:
                   - !GetAtt HiveSessionAvailabilityNotifierTable.Arn
-              - Sid: SNSWrite
+              - Sid: SMSWrite
                 Effect: Allow
                 Action:
-                  - sns:Publish
+                  - mobiletargeting:SendMessages
+                Resource:
+                  - "*"
+              - Sid: CloudWatchLogs
+                Effect: Allow
+                Action:
+                  - logs:Create*
+                  - logs:PutLogEvents
+                Resource:
+                  - "*"
+
+  SessionSmsResponderLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: SessionSmsResponderLambdaPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: DDBRead
+                Effect: Allow
+                Action:
+                  - dynamodb:Get*
+                  - dynamodb:Query
+                  - dynamodb:DescribeTable
+                Resource:
+                  - !GetAtt SMSAlowListTable.Arn
+              - Sid: SMSWrite
+                Effect: Allow
+                Action:
+                  - mobiletargeting:SendMessages
                 Resource:
                   - "*"
               - Sid: CloudWatchLogs
@@ -126,12 +191,53 @@ Resources:
       MemorySize: 512
       Timeout: 10
       Role: !GetAtt SessionSubscriptionNotifierLambdaRole.Arn
+      Environment:
+        Variables:
+          SESSION_AGENT_PINPOINT_REGION: us-west-2
+          SESSION_AGENT_PINPOINT_APP_ID: !Ref PinpointAppIdParameter
+          SESSION_AGENT_PINPOINT_DEDICATED_NUMBER: !Ref PinpointDedicatedNumberParameter
+          SESSION_AGENT_PINPOINT_KEYWORD: !Ref PinpointKeywordParameter
       Events:
         SNSEvent:
           Type: SNS
           Properties:
             Topic:
               Ref: SessionAvailabilityTopic
+
+  SessionSmsResponderLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: build/libs/RGProPoller-1.0-SNAPSHOT-all.jar
+      Handler: com.francisbailey.hive.sessionagent.lambda.SessionSmsResponderLambda::handleRequest
+      Runtime: java8
+      MemorySize: 512
+      Timeout: 10
+      Role: !GetAtt SessionSmsResponderLambdaRole.Arn
+      Environment:
+        Variables:
+          SESSION_AGENT_PINPOINT_REGION: us-west-2
+          SESSION_AGENT_PINPOINT_APP_ID: !Ref PinpointAppIdParameter
+          SESSION_AGENT_PINPOINT_DEDICATED_NUMBER: !Ref PinpointDedicatedNumberParameter
+          SESSION_AGENT_PINPOINT_KEYWORD: !Ref PinpointKeywordParameter
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic:
+              Ref: SessionAgentPinpointSMSTopic
+
+  # Workaround to force log retention policy on Lambda generated log groups
+#  SessionSubscriptionNotifierLambdaLogGroup:
+#    Type: AWS::Logs::LogGroup
+#    Properties:
+#      LogGroupName: !Sub "/aws/lambda/${SessionSubscriptionNotifierLambda}"
+#      RetentionInDays: 4
+#
+#  SessionSchedulePollerLambdaLogGroup:
+#    Type: AWS::Logs::LogGroup
+#    Properties:
+#      LogGroupName: !Sub "/aws/lambda/${SessionSchedulePollerLambda}"
+#      RetentionInDays: 4
 
   SessionSchedulePollerEvent:
     Type: AWS::Events::Rule

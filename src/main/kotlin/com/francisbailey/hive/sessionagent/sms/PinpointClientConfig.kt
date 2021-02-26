@@ -4,13 +4,15 @@ import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.pinpoint.PinpointClient
 
 class PinpointClientConfig {
-    val pinpointAppId = System.getenv("SESSION_AGENT_PINPOINT_APP_ID")
+    val pinpointAppId: String = System.getenv("SESSION_AGENT_PINPOINT_APP_ID")
 
-    val pinpointOriginNumber = System.getenv("SESSION_AGENT_PINPOINT_DEDICATED_NUMBER")
+    val pinpointOriginNumber: String = System.getenv("SESSION_AGENT_PINPOINT_DEDICATED_NUMBER")
 
-    val pinpointRegion = Region.of(System.getenv("SESSION_AGENT_PINPOINT_REGION"))
+    val pinpointKeyword: String = System.getenv("SESSION_AGENT_PINPOINT_KEYWORD")
 
-    fun buildClient() = PinpointClient.builder()
+    val pinpointRegion: Region = Region.of(System.getenv("SESSION_AGENT_PINPOINT_REGION"))
+
+    fun buildClient(): PinpointClient = PinpointClient.builder()
         .region(pinpointRegion)
         .build()
 }

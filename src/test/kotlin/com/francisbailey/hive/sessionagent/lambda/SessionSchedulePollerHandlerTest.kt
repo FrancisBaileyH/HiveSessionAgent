@@ -56,9 +56,7 @@ class SessionSchedulePollerHandlerTest {
         )
 
         whenever(hiveClient.getBookingAvailability(LocalDate.now(), HiveLocation.POCO)).thenReturn(listOf(scheduleAvailabilityEvent))
-
         sessionSchedulePollerHandler.handleRequest(hiveClient)
-
         verify(snsClient).publish(PublishRequest.builder()
             .topicArn(sessionTopicArn)
             .message(Json.encodeToString(expectedEvent))

@@ -12,11 +12,19 @@ A *WIP* SMS chatbot that enables you to create alerts for climbing sessions at t
 
 
 ### Setup
+#### Pinpoint
+1. Create pinpoint project with dedicated number for two-way SMS
+
+#### Infrastructure
 1. Install SAM
 1. Create SAMUser IAM User with Admin permissions
 1. Add AWS Credentials for SAM
 1. Run:
 ```
 ./gradlew shadowJar
-sam deploy --guided
+sam deploy --guided --parameter-overrides PinpointAppIdParameter=<App Id> PinpointDedicatedNumberParameter=<number> PinpointKeywordParameter=<keyword>
 ```
+1. Add the SMS Topic as an event source for Pinpoint SMS
+
+#### Allow Listing
+By default allow listing is enabled for SMS. Allow list numbers by adding them to the `SMSAllowList` DDB table or adding an environment variable: `SESSION_AGENT_ALLOW_LIST_ENABLED` to false for class SmsResponderBotLambda.

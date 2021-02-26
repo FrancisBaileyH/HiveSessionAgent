@@ -12,6 +12,7 @@ import com.francisbailey.hive.rgproclient.RGProHiveClientConfig
 import com.francisbailey.hive.sessionagent.event.SessionAvailabilityEvent
 import com.francisbailey.hive.sessionagent.event.SessionAvailabilityPeriod
 import com.francisbailey.hive.sessionagent.event.SessionAvailabilityEntry
+import java.time.Clock
 import java.time.LocalDate
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
@@ -46,11 +47,13 @@ internal class SessionSchedulePollerHandler(
 ) {
 
     fun handleRequest(hiveBookingClient: HiveBookingClient) {
-        val currentDate = LocalDate.now()
-        val dateRange = (0..6L).map { currentDate.plusDays(it) }
+        val lookAheadRange = (0..6L)
 
         HiveLocation.values().forEach { location ->
-            dateRange.forEach { date ->
+            val startDate = LocalDate.now(Clock.system(location.zoneId))
+            lookAheadRange.forEach { lookAheadDay ->
+                val date = startDate.plusDays(lookAheadDay)
+
                 log.info { "Fetching schedule data for: ${location.fullName} on: $date" }
                 val scheduleEntries = hiveBookingClient.getBookingAvailability(date, location).filter {
                     it.availability == ScheduleAvailability.AVAILABLE

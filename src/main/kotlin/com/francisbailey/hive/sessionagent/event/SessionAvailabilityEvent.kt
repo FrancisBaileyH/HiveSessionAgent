@@ -1,6 +1,7 @@
 package com.francisbailey.hive.sessionagent.event
 
 import com.francisbailey.hive.common.HiveLocation
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlinx.serialization.KSerializer
@@ -30,7 +31,9 @@ data class SessionAvailabilityPeriod(
     val startTime: LocalDateTime,
     @Serializable(with = LocalDateTimeSerializer::class)
     val endTime: LocalDateTime
-)
+) {
+    fun sessionDuration(): Duration = Duration.between(startTime, endTime)
+}
 
 object LocalDateSerializer: KSerializer<LocalDate> {
     override val descriptor: SerialDescriptor get() = buildClassSerialDescriptor("LocalDate")

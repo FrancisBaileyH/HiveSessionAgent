@@ -73,6 +73,36 @@ class SessionSubscriptionNotifierHandlerTest {
     }
 
     @Test
+    fun `does not publish if session duration is too short`() {
+        val item = SessionAvailabilityNotifierItem(
+            sessionDateAndLocation = "TEST",
+            sessionEndDateTime = LocalDateTime.parse("2021-02-01T10:00:00.000").toString(),
+            sessionStartDateTime = LocalDateTime.parse("2021-02-01T08:00:00.000").toString(),
+            phoneNumber = "+1231231234",
+            requestTimestamp = 1,
+            hasBeenNotified = false,
+            minimumSessionMinutes = 120
+        )
+
+        val shortEvent = SessionAvailabilityEvent(
+            sessionDate = LocalDate.now(),
+            location = HiveLocation.POCO,
+            availableSessions = listOf(
+                SessionAvailabilityEntry(
+                    spaces = 3,
+                    period = SessionAvailabilityPeriod(
+                        startTime = LocalDateTime.parse("2021-02-01T10:00:00.000"),
+                        endTime = LocalDateTime.parse("2021-02-01T11:59:00.000")
+                    )
+                )
+            )
+        )
+        whenever(sessionAvailabilityNotifierDAO.getNotificationSubscriptions(any(), any())).thenReturn(listOf(item))
+        sessionSubscriptionNotifierHandler.handleRequest(defaultEvent)
+        verifyZeroInteractions(smsSenderClient)
+    }
+
+    @Test
     fun `does not publish event if subscriber has been notified`() {
         val item = SessionAvailabilityNotifierItem(
             sessionDateAndLocation = "TEST",

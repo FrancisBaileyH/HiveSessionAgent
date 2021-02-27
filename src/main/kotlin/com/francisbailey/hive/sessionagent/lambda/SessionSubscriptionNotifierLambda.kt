@@ -9,6 +9,7 @@ import com.francisbailey.hive.sessionagent.sms.PinpointClientConfig
 import com.francisbailey.hive.sessionagent.sms.PinpointSMSSenderClient
 import com.francisbailey.hive.sessionagent.sms.SMSSenderClient
 import com.francisbailey.hive.sessionagent.store.SessionAvailabilityNotifierDAO
+import java.time.Duration
 import java.time.LocalDateTime
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
@@ -60,6 +61,7 @@ internal class SessionSubscriptionNotifierHandler(
                 val matchingSessions = event.availableSessions.filter {
                     it.period.startTime >= LocalDateTime.parse(subscriber.sessionStartDateTime)
                             && it.period.endTime <= LocalDateTime.parse(subscriber.sessionEndDateTime)
+                            && it.period.sessionDuration() >= Duration.ofMinutes(subscriber.minimumSessionMinutes)
                 }
 
                 if (matchingSessions.isNotEmpty()) {

@@ -4,6 +4,8 @@ The Hive is a popular set of climbing gyms located in the greater Vancouver area
 
 As a result, I've create the "Hive Session Agent". It's a basic SMS chatbot that enables you to create alerts for climbing sessions at the Hive. When you create an alert, you'll be notified within 10 minutes if an opening appears. It can also be used to set a reminder for future climbing sessions that aren't available for booking yet.
 
+![snapshot](assets/sms-demo.jpeg)
+
 ### Architecture
 For this project, I've gone with an entirely serverless workflow as outlined below:
 ![snapshot](assets/HiveSessionAgent.jpg)

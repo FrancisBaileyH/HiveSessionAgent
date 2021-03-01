@@ -8,6 +8,7 @@ import com.francisbailey.hive.sessionagent.event.SessionAvailabilityEvent
 import com.francisbailey.hive.sessionagent.sms.PinpointClientConfig
 import com.francisbailey.hive.sessionagent.sms.PinpointSMSSenderClient
 import com.francisbailey.hive.sessionagent.sms.SMSSenderClient
+import com.francisbailey.hive.sessionagent.sms.SmsDateTimeFormatter
 import com.francisbailey.hive.sessionagent.store.SessionAvailabilityNotifierDAO
 import java.time.Duration
 import java.time.LocalDateTime
@@ -67,7 +68,7 @@ internal class SessionSubscriptionNotifierHandler(
                 if (matchingSessions.isNotEmpty()) {
                     log.info { "Found openings, sending message to user: ${subscriber.phoneNumber}" }
                     smsSenderClient.sendMessage(
-                        message = "An opening at the ${event.location.fullName} location has just appeared for: ${event.sessionDate}. Available session(s): ${matchingSessions.joinToString { "${it.period.startTime.toLocalTime()} - ${it.period.endTime.toLocalTime()}" }}",
+                        message = "An opening at the ${event.location.fullName} location has just appeared for: ${event.sessionDate}. Available session(s): ${matchingSessions.joinToString { "${SmsDateTimeFormatter.formatTime(it.period.startTime.toLocalTime())} - ${SmsDateTimeFormatter.formatTime(it.period.endTime.toLocalTime())}" }}",
                         phoneNumber = subscriber.phoneNumber
                     )
 

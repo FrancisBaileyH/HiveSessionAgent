@@ -26,7 +26,7 @@ class SessionSubscriptionNotifierHandlerTest {
     private val sessionSubscriptionNotifierHandler = SessionSubscriptionNotifierHandler(sessionAvailabilityNotifierDAO, smsSenderClient)
 
     private val defaultEvent = SessionAvailabilityEvent(
-        sessionDate = LocalDate.now(),
+        sessionDate = LocalDate.parse("2021-02-01"),
         location = HiveLocation.POCO,
         availableSessions = listOf(
             SessionAvailabilityEntry(
@@ -52,7 +52,7 @@ class SessionSubscriptionNotifierHandlerTest {
 
         whenever(sessionAvailabilityNotifierDAO.getNotificationSubscriptions(any(), any())).thenReturn(listOf(item))
         sessionSubscriptionNotifierHandler.handleRequest(defaultEvent)
-        verify(smsSenderClient).sendMessage("An opening at the PoCo location has just appeared for: 2021-02-26. Available session(s): 10:00 - 12:00", item.phoneNumber)
+        verify(smsSenderClient).sendMessage("An opening at the PoCo location has just appeared for: 2021-02-01. Available session(s): 10:00AM - 12:00PM", item.phoneNumber)
         verify(sessionAvailabilityNotifierDAO).save(eq(item.apply { this.hasBeenNotified = true }))
     }
 
@@ -85,7 +85,7 @@ class SessionSubscriptionNotifierHandlerTest {
         )
 
         val shortEvent = SessionAvailabilityEvent(
-            sessionDate = LocalDate.now(),
+            sessionDate = LocalDate.parse("2021-02-01"),
             location = HiveLocation.POCO,
             availableSessions = listOf(
                 SessionAvailabilityEntry(
@@ -98,7 +98,7 @@ class SessionSubscriptionNotifierHandlerTest {
             )
         )
         whenever(sessionAvailabilityNotifierDAO.getNotificationSubscriptions(any(), any())).thenReturn(listOf(item))
-        sessionSubscriptionNotifierHandler.handleRequest(defaultEvent)
+        sessionSubscriptionNotifierHandler.handleRequest(shortEvent)
         verifyZeroInteractions(smsSenderClient)
     }
 

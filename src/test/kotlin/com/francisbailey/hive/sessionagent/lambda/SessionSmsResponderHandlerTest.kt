@@ -36,7 +36,7 @@ class SessionSmsResponderHandlerTest {
         val expectedEndTime = LocalDateTime.parse("${date}T13:00")
         smsResponderBotHandler.handleRequest(phoneNumber, message)
 
-        verify(smsSenderClient).sendMessage("Successfully registered alert for: PoCo on: 2021-02-11 from 11:00 to 13:00", phoneNumber)
+        verify(smsSenderClient).sendMessage("Successfully registered alert for: PoCo on: 2021-02-11 from 11:00AM to 1:00PM", phoneNumber)
         verify(sessionAvailabilityNotifierDAO).create(
             location = HiveLocation.POCO,
             sessionStart = expectedStartTime,
@@ -78,7 +78,7 @@ class SessionSmsResponderHandlerTest {
         val expectedEndTime = LocalDateTime.parse("${date}T13:00")
         smsResponderBotHandlerWithAllowList.handleRequest(phoneNumber, message)
 
-        verify(smsSenderClient).sendMessage("Successfully registered alert for: PoCo on: 2021-02-11 from 11:00 to 13:00", phoneNumber)
+        verify(smsSenderClient).sendMessage("Successfully registered alert for: PoCo on: 2021-02-11 from 11:00AM to 1:00PM", phoneNumber)
         verify(sessionAvailabilityNotifierDAO).create(
             location = HiveLocation.POCO,
             sessionStart = expectedStartTime,

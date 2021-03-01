@@ -23,7 +23,7 @@ data class SessionAvailabilityNotifierItem(
     @DynamoDBTyped(DynamoDBMapperFieldModel.DynamoDBAttributeType.BOOL)
     var hasBeenNotified: Boolean = false,
     @DynamoDBAttribute
-    var minimumSessionMinutes: Long = 100,
+    var minimumSessionMinutes: Long = 90,
     @DynamoDBAttribute
     var ttl: Long = 0
 )

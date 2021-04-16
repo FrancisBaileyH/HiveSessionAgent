@@ -71,9 +71,10 @@ internal class SessionSubscriptionNotifierHandler(
                         message = "An opening at the ${event.location.fullName} location has just appeared for: ${event.sessionDate}. Available session(s): ${matchingSessions.joinToString { "${SmsDateTimeFormatter.formatTime(it.period.startTime.toLocalTime())} - ${SmsDateTimeFormatter.formatTime(it.period.endTime.toLocalTime())}" }}",
                         phoneNumber = subscriber.phoneNumber
                     )
-
+                    log.info { "Message sent successfully, updating notified status" }
                     subscriber.hasBeenNotified = true
                     sessionAvailabilityNotifierDAO.save(subscriber)
+                    log.info { "Notification status saved successfully" }
                 }
             }
     }

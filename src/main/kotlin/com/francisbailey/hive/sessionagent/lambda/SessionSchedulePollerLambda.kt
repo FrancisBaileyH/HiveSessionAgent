@@ -74,15 +74,14 @@ internal class SessionSchedulePollerHandler(
 
     private suspend fun fetchAndPublishScheduleInfo(hiveBookingClient: HiveBookingClient, date: LocalDate, location: HiveLocation) {
         try {
-            val scheduleEntries = CloudWatchOperationTimer(cloudWatchClient, service = "HiveBookingClient", operation = "getBookingAvailability").use {
-                log.info { "Fetching schedule data for: ${location.fullName} on: $date" }
+            log.info { "Fetching schedule data for: ${location.fullName} on: $date" }
 
+            val scheduleEntries = CloudWatchOperationTimer(cloudWatchClient, service = "HiveBookingClient", operation = "getBookingAvailability").use {
                 hiveBookingClient.getBookingAvailability(date, location).filter {
                     it.availability == ScheduleAvailability.AVAILABLE
                 }
-                log.info { "Successfully fetched schedule data for: ${location.fullName} on: $date" }
             }
-
+            log.info { "Successfully fetched schedule data for: ${location.fullName} on: $date" }
 
             if (scheduleEntries.isNotEmpty()) {
                 log.info { "Found availability" }

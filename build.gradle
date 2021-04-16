@@ -40,6 +40,7 @@ dependencies {
     implementation "software.amazon.awssdk:sqs:2.15.81"
     implementation "software.amazon.awssdk:sns:2.15.81"
     implementation "software.amazon.awssdk:pinpoint:2.15.81"
+    implementation "software.amazon.awssdk:cloudwatch:2.15.81"
     implementation "io.github.microutils:kotlin-logging:1.12.0"
     implementation "com.amazonaws:aws-lambda-java-core:1.2.1"
     implementation "com.amazonaws:aws-lambda-java-events:3.1.0"

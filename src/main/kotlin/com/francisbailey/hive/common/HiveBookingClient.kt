@@ -4,7 +4,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 interface HiveBookingClient: AutoCloseable {
-    fun getBookingAvailability(date: LocalDate, location: HiveLocation): List<ScheduleEntry>
+    suspend fun getBookingAvailability(date: LocalDate, location: HiveLocation): List<ScheduleEntry>
 }
 
 enum class HiveLocation(

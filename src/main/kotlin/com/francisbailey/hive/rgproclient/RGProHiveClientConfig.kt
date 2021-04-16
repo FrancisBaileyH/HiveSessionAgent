@@ -25,6 +25,7 @@ class RGProHiveClientConfig {
             this.endpoint {
                 this.connectAttempts = 3
             }
+            this.requestTimeout = 3000 // ms
         }
     }
 }

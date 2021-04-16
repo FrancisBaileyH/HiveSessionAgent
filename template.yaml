@@ -82,11 +82,12 @@ Resources:
                   - sns:Publish
                 Resource:
                   - !Ref SessionAvailabilityTopic
-              - Sid: CloudWatchLogs
+              - Sid: CloudWatch
                 Effect: Allow
                 Action:
                   - logs:Create*
                   - logs:PutLogEvents
+                  - cloudwatch:PutMetricData
                 Resource:
                   - "*"
 
@@ -244,7 +245,7 @@ Resources:
   SessionSchedulePollerEvent:
     Type: AWS::Events::Rule
     Properties:
-      ScheduleExpression: "cron(0/10 16-8 ? * * *)"
+      ScheduleExpression: "cron(0/10 16-7 ? * * *)"
       State: "ENABLED"
       Targets:
         - Arn: !GetAtt SessionSchedulePollerLambda.Arn

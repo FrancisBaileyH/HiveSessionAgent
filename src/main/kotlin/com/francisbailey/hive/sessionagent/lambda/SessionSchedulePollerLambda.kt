@@ -2,6 +2,7 @@ package com.francisbailey.hive.sessionagent.lambda
 
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.RequestHandler
+import com.francisbailey.hive.common.CloudWatchOperationTimer
 import com.francisbailey.hive.common.HiveBookingClient
 import com.francisbailey.hive.common.HiveLocation
 import com.francisbailey.hive.common.ScheduleAvailability
@@ -14,9 +15,14 @@ import com.francisbailey.hive.sessionagent.event.SessionAvailabilityPeriod
 import com.francisbailey.hive.sessionagent.event.SessionAvailabilityEntry
 import java.time.Clock
 import java.time.LocalDate
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import mu.KotlinLogging
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient
 import software.amazon.awssdk.services.sns.SnsClient
 import software.amazon.awssdk.services.sns.model.PublishRequest
 
@@ -30,9 +36,11 @@ class SessionSchedulePollerLambda: RequestHandler<Unit, Unit> {
 
     private val snsClient = SnsClient.builder().build()
 
+    private val cloudWatchClient = CloudWatchClient.builder().build()
+
     private val rgProHiveClientConfig = RGProHiveClientConfig()
 
-    private val sessionSchedulePollerHandler = SessionSchedulePollerHandler(snsClient, sessionTopicArn)
+    private val sessionSchedulePollerHandler = SessionSchedulePollerHandler(snsClient, sessionTopicArn, cloudWatchClient)
 
     override fun handleRequest(input: Unit?, context: Context) {
         RGProHiveClient(rgProHiveClientConfig, DefaultRGProScheduleParser()).use {
@@ -43,27 +51,45 @@ class SessionSchedulePollerLambda: RequestHandler<Unit, Unit> {
 
 internal class SessionSchedulePollerHandler(
     private val sns: SnsClient,
-    private val sessionTopicArn: String
+    private val sessionTopicArn: String,
+    private val cloudWatchClient: CloudWatchClient
 ) {
+    private val maxConcurrentRequestLimiter = Semaphore(MAX_CONCURRENT_REQUESTS)
 
-    fun handleRequest(hiveBookingClient: HiveBookingClient) {
+    fun handleRequest(hiveBookingClient: HiveBookingClient) = runBlocking {
         val lookAheadRange = (0..6L)
 
         HiveLocation.values().forEach { location ->
             val startDate = LocalDate.now(Clock.system(location.zoneId))
             lookAheadRange.forEach { lookAheadDay ->
-                val date = startDate.plusDays(lookAheadDay)
-
-                log.info { "Fetching schedule data for: ${location.fullName} on: $date" }
-                val scheduleEntries = hiveBookingClient.getBookingAvailability(date, location).filter {
-                    it.availability == ScheduleAvailability.AVAILABLE
-                }
-
-                if (scheduleEntries.isNotEmpty()) {
-                    log.info { "Found availability" }
-                    publishEvent(scheduleEntries, date, location)
+                launch {
+                    maxConcurrentRequestLimiter.withPermit {
+                        val date = startDate.plusDays(lookAheadDay)
+                        fetchAndPublishScheduleInfo(hiveBookingClient, date, location)
+                    }
                 }
             }
+        }
+    }
+
+    private suspend fun fetchAndPublishScheduleInfo(hiveBookingClient: HiveBookingClient, date: LocalDate, location: HiveLocation) {
+        try {
+            val scheduleEntries = CloudWatchOperationTimer(cloudWatchClient, service = "HiveBookingClient", operation = "getBookingAvailability").use {
+                log.info { "Fetching schedule data for: ${location.fullName} on: $date" }
+
+                hiveBookingClient.getBookingAvailability(date, location).filter {
+                    it.availability == ScheduleAvailability.AVAILABLE
+                }
+                log.info { "Successfully fetched schedule data for: ${location.fullName} on: $date" }
+            }
+
+
+            if (scheduleEntries.isNotEmpty()) {
+                log.info { "Found availability" }
+                publishEvent(scheduleEntries, date, location)
+            }
+        } catch (e: Exception) {
+            log.error(e) { "Failed to fetch and publish schedule info for: $date at $location"}
         }
     }
 
@@ -87,6 +113,10 @@ internal class SessionSchedulePollerHandler(
             .build()
         )
         log.info { "Published event: $sessionAvailabilityEvent" }
+    }
+
+    companion object {
+        private const val MAX_CONCURRENT_REQUESTS = 10
     }
 }
 

@@ -12,7 +12,6 @@ import io.ktor.client.statement.readText
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
 import java.time.LocalDate
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -25,7 +24,7 @@ class RGProHiveClient(
 
     private val client = config.buildClient()
 
-    override fun getBookingAvailability(date: LocalDate, location: HiveLocation): List<ScheduleEntry> = runBlocking {
+    override suspend fun getBookingAvailability(date: LocalDate, location: HiveLocation): List<ScheduleEntry> {
         val locationGuid = config.locationGuidMap[location] ?: error("Missing mapping for $location")
 
         val response = client.post<HttpResponse>(urlString = "${config.endpoint}/b/widget/?a=equery") {
@@ -54,7 +53,7 @@ class RGProHiveClient(
         }
 
         val scheduleResponse = Json.decodeFromString<RGProScheduleResponse>(response.readText())
-        scheduleParser.parse(scheduleResponse.htmlScheduleTable, date)
+        return scheduleParser.parse(scheduleResponse.htmlScheduleTable, date)
     }
 
     override fun close() {

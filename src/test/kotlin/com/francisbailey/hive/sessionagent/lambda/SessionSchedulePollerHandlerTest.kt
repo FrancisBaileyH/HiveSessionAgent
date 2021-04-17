@@ -1,7 +1,7 @@
 package com.francisbailey.hive.sessionagent.lambda
 
-import com.francisbailey.hive.common.HiveBookingClient
-import com.francisbailey.hive.common.HiveLocation
+import com.francisbailey.hive.common.RGProBookingClient
+import com.francisbailey.hive.common.RGProLocation
 import com.francisbailey.hive.common.ScheduleAvailability
 import com.francisbailey.hive.common.ScheduleEntry
 import com.francisbailey.hive.common.SessionPeriod
@@ -24,7 +24,7 @@ import software.amazon.awssdk.services.sns.model.PublishRequest
 
 class SessionSchedulePollerHandlerTest {
 
-    private val hiveClient = mock<HiveBookingClient>()
+    private val hiveClient = mock<RGProBookingClient>()
 
     private val snsClient = mock<SnsClient>()
 
@@ -36,7 +36,7 @@ class SessionSchedulePollerHandlerTest {
 
     init {
         val lookAheadRange = (0..6L)
-        HiveLocation.values().forEach { location ->
+        RGProLocation.values().forEach { location ->
             val startDate = LocalDate.now(Clock.system(location.zoneId))
             lookAheadRange.forEach { lookAheadDay ->
                 val date = startDate.plusDays(lookAheadDay)
@@ -54,7 +54,7 @@ class SessionSchedulePollerHandlerTest {
         )
 
         val expectedEvent = SessionAvailabilityEvent(
-            location = HiveLocation.POCO,
+            location = RGProLocation.HIVE_POCO,
             sessionDate = LocalDate.now(),
             availableSessions = listOf(SessionAvailabilityEntry(
                 spaces = 3,
@@ -65,7 +65,7 @@ class SessionSchedulePollerHandlerTest {
             ))
         )
 
-        whenever(runBlocking { hiveClient.getBookingAvailability(LocalDate.now(), HiveLocation.POCO) }).thenReturn(listOf(scheduleAvailabilityEvent))
+        whenever(runBlocking { hiveClient.getBookingAvailability(LocalDate.now(), RGProLocation.HIVE_POCO) }).thenReturn(listOf(scheduleAvailabilityEvent))
         sessionSchedulePollerHandler.handleRequest(hiveClient)
         verify(snsClient).publish(PublishRequest.builder()
             .topicArn(sessionTopicArn)

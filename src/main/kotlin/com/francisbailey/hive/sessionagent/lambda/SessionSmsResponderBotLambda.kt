@@ -4,7 +4,8 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.RequestHandler
 import com.amazonaws.services.lambda.runtime.events.SNSEvent
-import com.francisbailey.hive.common.HiveLocation
+import com.francisbailey.hive.common.RGProLocation
+import com.francisbailey.hive.common.UnknownRGProLocationException
 import com.francisbailey.hive.sessionagent.event.PinpointSMSEvent
 import com.francisbailey.hive.sessionagent.sms.PinpointClientConfig
 import com.francisbailey.hive.sessionagent.sms.PinpointSMSSenderClient
@@ -14,7 +15,6 @@ import com.francisbailey.hive.sessionagent.store.SMSAllowListDAO
 import com.francisbailey.hive.sessionagent.store.SessionAvailabilityNotifierDAO
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 import mu.KotlinLogging
@@ -64,15 +64,16 @@ class SessionSmsResponderHandler(
 
         when {
             smsMessageBody.startsWith("CreateAlert") -> handleCreateAlert(origin, smsMessageBody)
+            smsMessageBody.startsWith("ListLocations") -> handleListLocations(origin)
             else -> smsSenderClient.sendMessage("Unknown command. $HELP_MESSAGE", origin)
         }
     }
 
-    // CreateAlert for <Location> on <date> from <time> to <time>
+    // CreateAlert for <Facility> <Location> on <date> from <time> to <time>
     private fun handleCreateAlert(origin: String, message: String) = try {
         val messageComponents = message.split(" ")
 
-        val location = HiveLocation.valueOf(messageComponents[2].toUpperCase())
+        val location = RGProLocation.fromString(messageComponents[2].toUpperCase())
         val date = LocalDate.parse(messageComponents[4])
         val startTime = SmsDateTimeFormatter.parseTime(messageComponents[6].toUpperCase())
         val endTime = SmsDateTimeFormatter.parseTime(messageComponents[8].toUpperCase())
@@ -82,12 +83,22 @@ class SessionSmsResponderHandler(
 
         sessionAvailabilityNotifierDAO.create(location, startDateTime, endDateTime, origin)
         smsSenderClient.sendMessage("Successfully registered alert for: ${location.fullName} on: $date from ${SmsDateTimeFormatter.formatTime(startTime)} to ${SmsDateTimeFormatter.formatTime(endTime)}", origin)
-    } catch (e: Exception) {
+    }
+    catch (e: UnknownRGProLocationException) {
+        log.error(e) { "Invalid location in: $message" }
+        smsSenderClient.sendMessage("Invalid location. Supported locations: $SUPPORTED_LOCATIONS", origin)
+    }
+    catch (e: Exception) {
         log.error(e) { "Failed to process message" }
         smsSenderClient.sendMessage("Failed to register alert. Please try again", origin)
     }
 
+    private fun handleListLocations(origin: String) {
+        smsSenderClient.sendMessage("Supported locations: $SUPPORTED_LOCATIONS", origin)
+    }
+
     companion object {
-        private val HELP_MESSAGE = "To create an alert type: CreateAlert for <Location> on <Date> from <Start Time> to <End Time>"
+        private const val HELP_MESSAGE = "Available commands: CreateAlert, ListLocations. Example CreateAlert command: CreateAlert for Hive-Poco on 2021-04-17 from 11:00AM to 1:00PM"
+        private val SUPPORTED_LOCATIONS = RGProLocation.values().joinToString(", ") { it.fullName }
     }
 }

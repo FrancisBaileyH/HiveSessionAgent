@@ -3,12 +3,12 @@ package com.francisbailey.hive.sessionagent.lambda
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.RequestHandler
 import com.francisbailey.hive.common.CloudWatchOperationTimer
-import com.francisbailey.hive.common.HiveBookingClient
-import com.francisbailey.hive.common.HiveLocation
+import com.francisbailey.hive.common.RGProBookingClient
+import com.francisbailey.hive.common.RGProLocation
 import com.francisbailey.hive.common.ScheduleAvailability
 import com.francisbailey.hive.common.ScheduleEntry
 import com.francisbailey.hive.rgproclient.DefaultRGProScheduleParser
-import com.francisbailey.hive.rgproclient.RGProHiveClient
+import com.francisbailey.hive.rgproclient.RGProRGProClient
 import com.francisbailey.hive.rgproclient.RGProHiveClientConfig
 import com.francisbailey.hive.sessionagent.event.SessionAvailabilityEvent
 import com.francisbailey.hive.sessionagent.event.SessionAvailabilityPeriod
@@ -43,7 +43,7 @@ class SessionSchedulePollerLambda: RequestHandler<Unit, Unit> {
     private val sessionSchedulePollerHandler = SessionSchedulePollerHandler(snsClient, sessionTopicArn, cloudWatchClient)
 
     override fun handleRequest(input: Unit?, context: Context) {
-        RGProHiveClient(rgProHiveClientConfig, DefaultRGProScheduleParser()).use {
+        RGProRGProClient(rgProHiveClientConfig, DefaultRGProScheduleParser()).use {
             sessionSchedulePollerHandler.handleRequest(it)
         }
     }
@@ -56,28 +56,28 @@ internal class SessionSchedulePollerHandler(
 ) {
     private val maxConcurrentRequestLimiter = Semaphore(MAX_CONCURRENT_REQUESTS)
 
-    fun handleRequest(hiveBookingClient: HiveBookingClient) = runBlocking {
+    fun handleRequest(RGProBookingClient: RGProBookingClient) = runBlocking {
         val lookAheadRange = (0..6L)
 
-        HiveLocation.values().forEach { location ->
+        RGProLocation.values().forEach { location ->
             val startDate = LocalDate.now(Clock.system(location.zoneId))
             lookAheadRange.forEach { lookAheadDay ->
                 launch {
                     maxConcurrentRequestLimiter.withPermit {
                         val date = startDate.plusDays(lookAheadDay)
-                        fetchAndPublishScheduleInfo(hiveBookingClient, date, location)
+                        fetchAndPublishScheduleInfo(RGProBookingClient, date, location)
                     }
                 }
             }
         }
     }
 
-    private suspend fun fetchAndPublishScheduleInfo(hiveBookingClient: HiveBookingClient, date: LocalDate, location: HiveLocation) {
+    private suspend fun fetchAndPublishScheduleInfo(RGProBookingClient: RGProBookingClient, date: LocalDate, location: RGProLocation) {
         try {
             log.info { "Fetching schedule data for: ${location.fullName} on: $date" }
 
             val scheduleEntries = CloudWatchOperationTimer(cloudWatchClient, service = "HiveBookingClient", operation = "getBookingAvailability").use {
-                hiveBookingClient.getBookingAvailability(date, location).filter {
+                RGProBookingClient.getBookingAvailability(date, location).filter {
                     it.availability == ScheduleAvailability.AVAILABLE
                 }
             }
@@ -92,7 +92,7 @@ internal class SessionSchedulePollerHandler(
         }
     }
 
-    private fun publishEvent(scheduleEntries: List<ScheduleEntry>, date: LocalDate, location: HiveLocation) {
+    private fun publishEvent(scheduleEntries: List<ScheduleEntry>, date: LocalDate, location: RGProLocation) {
         val sessionAvailabilityEvent = SessionAvailabilityEvent(
             location = location,
             sessionDate = date,

@@ -1,6 +1,6 @@
 package com.francisbailey.hive.sessionagent.event
 
-import com.francisbailey.hive.common.HiveLocation
+import com.francisbailey.hive.common.RGProLocation
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -13,7 +13,7 @@ import kotlinx.serialization.encoding.Encoder
 
 @Serializable
 data class SessionAvailabilityEvent(
-    val location: HiveLocation,
+    val location: RGProLocation,
     @Serializable(with = LocalDateSerializer::class)
     val sessionDate: LocalDate,
     val availableSessions: List<SessionAvailabilityEntry>

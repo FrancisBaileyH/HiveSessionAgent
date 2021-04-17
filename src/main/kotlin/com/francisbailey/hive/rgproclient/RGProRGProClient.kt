@@ -1,8 +1,8 @@
 package com.francisbailey.hive.rgproclient
 
 
-import com.francisbailey.hive.common.HiveBookingClient
-import com.francisbailey.hive.common.HiveLocation
+import com.francisbailey.hive.common.RGProBookingClient
+import com.francisbailey.hive.common.RGProLocation
 import com.francisbailey.hive.common.ScheduleEntry
 import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.headers
@@ -17,16 +17,14 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 
-class RGProHiveClient(
+class RGProRGProClient(
     private val config: RGProHiveClientConfig,
     private val scheduleParser: RGProScheduleParser
-): HiveBookingClient, AutoCloseable {
+): RGProBookingClient, AutoCloseable {
 
     private val client = config.buildClient()
 
-    override suspend fun getBookingAvailability(date: LocalDate, location: HiveLocation): List<ScheduleEntry> {
-        val locationGuid = config.locationGuidMap[location] ?: error("Missing mapping for $location")
-
+    override suspend fun getBookingAvailability(date: LocalDate, location: RGProLocation): List<ScheduleEntry> {
         val response = client.post<HttpResponse>(urlString = "${config.endpoint}/b/widget/?a=equery") {
             headers {
                 append("Accept", "*/*")
@@ -38,11 +36,11 @@ class RGProHiveClient(
             body = FormDataContent(Parameters.build {
                 append("mode", "e")
                 append("fctrl_1", "offering_guid")
-                append("offering_guid", locationGuid)
+                append("offering_guid", location.guid)
                 append("fctrl_2", "course_guid")
                 append("course_guid", "")
-                append("fctrl_3", "limited_to_course_guid_for_offering_guid_$locationGuid}")
-                append("limited_to_course_guid_for_offering_guid_$locationGuid", "")
+                append("fctrl_3", "limited_to_course_guid_for_offering_guid_${location.guid}")
+                append("limited_to_course_guid_for_offering_guid_${location.guid}", "")
                 append("fctrl_4", "show_date")
                 append("show_date", date.toString())
             })

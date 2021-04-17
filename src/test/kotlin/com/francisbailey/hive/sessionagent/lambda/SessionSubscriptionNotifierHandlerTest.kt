@@ -1,6 +1,6 @@
 package com.francisbailey.hive.sessionagent.lambda
 
-import com.francisbailey.hive.common.HiveLocation
+import com.francisbailey.hive.common.RGProLocation
 import com.francisbailey.hive.sessionagent.event.SessionAvailabilityEntry
 import com.francisbailey.hive.sessionagent.event.SessionAvailabilityEvent
 import com.francisbailey.hive.sessionagent.event.SessionAvailabilityPeriod
@@ -27,7 +27,7 @@ class SessionSubscriptionNotifierHandlerTest {
 
     private val defaultEvent = SessionAvailabilityEvent(
         sessionDate = LocalDate.parse("2021-02-01"),
-        location = HiveLocation.POCO,
+        location = RGProLocation.HIVE_POCO,
         availableSessions = listOf(
             SessionAvailabilityEntry(
                 spaces = 3,
@@ -52,7 +52,7 @@ class SessionSubscriptionNotifierHandlerTest {
 
         whenever(sessionAvailabilityNotifierDAO.getNotificationSubscriptions(any(), any())).thenReturn(listOf(item))
         sessionSubscriptionNotifierHandler.handleRequest(defaultEvent)
-        verify(smsSenderClient).sendMessage("An opening at the PoCo location has just appeared for: 2021-02-01. Available session(s): 10:00AM - 12:00PM", item.phoneNumber)
+        verify(smsSenderClient).sendMessage("An opening at the Hive-Poco location has just appeared for: 2021-02-01. Available session(s): 10:00AM - 12:00PM", item.phoneNumber)
         verify(sessionAvailabilityNotifierDAO).save(eq(item.apply { this.hasBeenNotified = true }))
     }
 
@@ -86,7 +86,7 @@ class SessionSubscriptionNotifierHandlerTest {
 
         val shortEvent = SessionAvailabilityEvent(
             sessionDate = LocalDate.parse("2021-02-01"),
-            location = HiveLocation.POCO,
+            location = RGProLocation.HIVE_POCO,
             availableSessions = listOf(
                 SessionAvailabilityEntry(
                     spaces = 3,

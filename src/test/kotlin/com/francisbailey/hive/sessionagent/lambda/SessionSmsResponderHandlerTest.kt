@@ -1,6 +1,6 @@
 package com.francisbailey.hive.sessionagent.lambda
 
-import com.francisbailey.hive.common.HiveLocation
+import com.francisbailey.hive.common.RGProLocation
 import com.francisbailey.hive.sessionagent.sms.SMSSenderClient
 import com.francisbailey.hive.sessionagent.store.SMSAllowListDAO
 import com.francisbailey.hive.sessionagent.store.SessionAvailabilityNotifierDAO
@@ -31,14 +31,14 @@ class SessionSmsResponderHandlerTest {
     @Test
     fun `creates new subscription when correctly formatted create alert text is received`() {
         val date = "2021-02-11"
-        val message = "CreateAlert from PoCo on $date for 11:00AM to 1:00PM"
+        val message = "CreateAlert from Hive-PoCo on $date for 11:00AM to 1:00PM"
         val expectedStartTime = LocalDateTime.parse("${date}T11:00")
         val expectedEndTime = LocalDateTime.parse("${date}T13:00")
         smsResponderBotHandler.handleRequest(phoneNumber, message)
 
-        verify(smsSenderClient).sendMessage("Successfully registered alert for: PoCo on: 2021-02-11 from 11:00AM to 1:00PM", phoneNumber)
+        verify(smsSenderClient).sendMessage("Successfully registered alert for: Hive-Poco on: 2021-02-11 from 11:00AM to 1:00PM", phoneNumber)
         verify(sessionAvailabilityNotifierDAO).create(
-            location = HiveLocation.POCO,
+            location = RGProLocation.HIVE_POCO,
             sessionStart = expectedStartTime,
             sessionEnd = expectedEndTime,
             phoneNumber = phoneNumber
@@ -47,7 +47,7 @@ class SessionSmsResponderHandlerTest {
 
     @Test
     fun `sends failure SMS when CreateAlert command can not be parsed`() {
-        val message = "CreateAlert bad format"
+        val message = "CreateAlert for Hive-Poco bad format"
         smsResponderBotHandler.handleRequest(phoneNumber, message)
         verify(smsSenderClient).sendMessage("Failed to register alert. Please try again", phoneNumber)
         verifyZeroInteractions(sessionAvailabilityNotifierDAO)
@@ -57,7 +57,7 @@ class SessionSmsResponderHandlerTest {
     fun `sends unknown command SMS when unknown command is received`() {
         val message = "Not a command"
         smsResponderBotHandler.handleRequest(phoneNumber, message)
-        verify(smsSenderClient).sendMessage("Unknown command. To create an alert type: CreateAlert for <Location> on <Date> from <Start Time> to <End Time>", phoneNumber)
+        verify(smsSenderClient).sendMessage("Unknown command. Available commands: CreateAlert, ListLocations. Example CreateAlert command: CreateAlert for Hive-Poco on 2021-04-17 from 11:00AM to 1:00PM", phoneNumber)
         verifyZeroInteractions(sessionAvailabilityNotifierDAO)
     }
 
@@ -73,17 +73,35 @@ class SessionSmsResponderHandlerTest {
     @Test
     fun `passes through when number is allow listed`() {
         val date = "2021-02-11"
-        val message = "CreateAlert from PoCo on $date for 11:00AM to 1:00PM"
+        val message = "CreateAlert for Hive-PoCo on $date for 11:00AM to 1:00PM"
         val expectedStartTime = LocalDateTime.parse("${date}T11:00")
         val expectedEndTime = LocalDateTime.parse("${date}T13:00")
         smsResponderBotHandlerWithAllowList.handleRequest(phoneNumber, message)
 
-        verify(smsSenderClient).sendMessage("Successfully registered alert for: PoCo on: 2021-02-11 from 11:00AM to 1:00PM", phoneNumber)
+        verify(smsSenderClient).sendMessage("Successfully registered alert for: Hive-Poco on: 2021-02-11 from 11:00AM to 1:00PM", phoneNumber)
         verify(sessionAvailabilityNotifierDAO).create(
-            location = HiveLocation.POCO,
+            location = RGProLocation.HIVE_POCO,
             sessionStart = expectedStartTime,
             sessionEnd = expectedEndTime,
             phoneNumber = phoneNumber
         )
+    }
+
+    @Test
+    fun `sends available locations when unknown location is sent`() {
+        val message = "CreateAlert for Bad-Location on 2021-02-011 for 11:00AM to 1:00PM"
+
+        smsResponderBotHandler.handleRequest(phoneNumber, message)
+
+        verify(smsSenderClient).sendMessage("Invalid location. Supported locations: Hive-Poco, Hive-Surrey, Hive-Vancouver, Hive-North-Vancouver, Base5-North-Vancouver, Base5-Coquitlam", phoneNumber)
+        verifyZeroInteractions(sessionAvailabilityNotifierDAO)
+    }
+
+    @Test
+    fun `lists available locations`() {
+        val message = "ListLocations"
+        smsResponderBotHandler.handleRequest(phoneNumber, message)
+        verify(smsSenderClient).sendMessage("Supported locations: Hive-Poco, Hive-Surrey, Hive-Vancouver, Hive-North-Vancouver, Base5-North-Vancouver, Base5-Coquitlam", phoneNumber)
+        verifyZeroInteractions(sessionAvailabilityNotifierDAO)
     }
 }

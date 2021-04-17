@@ -29,14 +29,8 @@ class CloudWatchOperationTimer(
                         .value(totalTime / 1000000.0)
                         .unit(StandardUnit.MILLISECONDS)
                         .dimensions(
-                            Dimension.builder()
-                                .name("Operation")
-                                .value(operation)
-                                .build(),
-                            Dimension.builder()
-                                .name("Service")
-                                .value(service)
-                                .build()
+                            Dimension.builder().name("Operation").value(operation).build(),
+                            Dimension.builder().name("Service").value(service).build()
                         )
                         .build())
                     .build()

@@ -213,7 +213,7 @@ Resources:
       CodeUri: build/libs/RGProPoller-1.0-SNAPSHOT-all.jar
       Handler: com.francisbailey.hive.sessionagent.lambda.SessionSmsResponderLambda::handleRequest
       Runtime: java8
-      MemorySize: 512
+      MemorySize: 2048
       Timeout: 10
       Role: !GetAtt SessionSmsResponderLambdaRole.Arn
       Environment:
@@ -245,7 +245,7 @@ Resources:
   SessionSchedulePollerEvent:
     Type: AWS::Events::Rule
     Properties:
-      ScheduleExpression: "cron(0/10 16-7 ? * * *)"
+      ScheduleExpression: "cron(0/10 15-8 ? * * *)"
       State: "ENABLED"
       Targets:
         - Arn: !GetAtt SessionSchedulePollerLambda.Arn

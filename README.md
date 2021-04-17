@@ -1,4 +1,7 @@
 ## Hive Session Agent
+### *New Announcement
+Base5 climbing gyms are **now** supported. The codebase has been refactored to support multiple facilities and includes a new `ListLocations` command as well as more enhanced error responses.
+
 ### About
 The Hive is a popular set of climbing gyms located in the greater Vancouver area. Since COVID-19 started, all climbing sessions must be reserved through a booking system. Often times, the more popular gym sessions will book up immediately or require you to monitor for a session to open up.
 
@@ -15,6 +18,8 @@ For this project, I've gone with an entirely serverless workflow as outlined bel
 - Hive Session Notification **[DONE]**
 - Hive Session SMS Alert Creation **[DONE]**
 - Hive Session SMS Allow List **[DONE]**
+- Add ListLocations command **[DONE]**
+- Support Base5 climbing gyms **[DONE]**
 
 
 ### Setup

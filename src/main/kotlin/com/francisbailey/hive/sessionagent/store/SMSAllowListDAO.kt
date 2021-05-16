@@ -12,4 +12,13 @@ open class SMSAllowListDAO(
         val result: SMSAllowListItem? = mapper.load(SMSAllowListItem::class.java, phoneNumber)
         return result != null && result.allowed
     }
+
+    open fun ban(phoneNumber: String) {
+        val allowListItem = SMSAllowListItem(
+            phoneNumber = phoneNumber,
+            allowed = false
+        )
+
+        mapper.save(allowListItem)
+    }
 }

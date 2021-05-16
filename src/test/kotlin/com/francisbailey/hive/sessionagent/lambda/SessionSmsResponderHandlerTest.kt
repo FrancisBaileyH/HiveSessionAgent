@@ -62,11 +62,12 @@ class SessionSmsResponderHandlerTest {
     }
 
     @Test
-    fun `sends unregistered message when number not in allow list`() {
+    fun `sends unregistered message when number not in allow list and adds number in banned state`() {
         whenever(smsAllowListDAO.isAllowed(any())).thenReturn(false)
-        smsResponderBotHandlerWithAllowList.handleRequest(phoneNumber, "Some Message")
+        smsResponderBotHandlerWithAllowList.handleRequest(phoneNumber, "CreateAlert")
 
         verify(smsSenderClient).sendMessage("Sorry you are not registered to use this service. Cannot complete request.", phoneNumber)
+        verify(smsAllowListDAO).ban(phoneNumber)
         verifyZeroInteractions(sessionAvailabilityNotifierDAO)
     }
 

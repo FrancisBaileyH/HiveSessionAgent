@@ -58,8 +58,10 @@ class SessionSmsResponderHandler(
         log.info { "Received message: $smsMessageBody from: $origin" }
 
         if (allowListEnabled && !smsAllowListDAO.isAllowed(origin)) {
-            log.warn { "$origin is not enabled for this resource" }
+            log.warn { "$origin is not enabled for this resource. Banned: $origin to prevent further spam" }
+            smsAllowListDAO.ban(origin)
             smsSenderClient.sendMessage("Sorry you are not registered to use this service. Cannot complete request.", origin)
+            return
         }
 
         when {

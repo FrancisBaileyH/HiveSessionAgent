@@ -16,6 +16,7 @@ class SessionSmsResponderHandlerTest {
 
     private val smsAllowListDAO = mock<SMSAllowListDAO> {
         on(mock.isAllowed(any())).thenReturn(true)
+        on(mock.isBanned(any())).thenReturn(false)
     }
 
     private val sessionAvailabilityNotifierDAO = mock<SessionAvailabilityNotifierDAO>()
@@ -63,11 +64,23 @@ class SessionSmsResponderHandlerTest {
 
     @Test
     fun `sends unregistered message when number not in allow list and adds number in banned state`() {
-        whenever(smsAllowListDAO.isAllowed(any())).thenReturn(false)
+        whenever(smsAllowListDAO.isAllowed(phoneNumber)).thenReturn(false)
         smsResponderBotHandlerWithAllowList.handleRequest(phoneNumber, "CreateAlert")
 
-        verify(smsSenderClient).sendMessage("Sorry you are not registered to use this service. Cannot complete request.", phoneNumber)
+        verify(smsSenderClient).sendMessage("Sorry you are not registered to use this service. No further responses will be sent.", phoneNumber)
         verify(smsAllowListDAO).ban(phoneNumber)
+        verify(smsAllowListDAO).isBanned(phoneNumber)
+        verify(smsAllowListDAO).isAllowed(phoneNumber)
+        verifyZeroInteractions(sessionAvailabilityNotifierDAO)
+    }
+
+    @Test
+    fun `does not resend unregistered message if number is already banned`() {
+        whenever(smsAllowListDAO.isBanned(phoneNumber)).thenReturn(true)
+        smsResponderBotHandlerWithAllowList.handleRequest(phoneNumber, "CreateAlert")
+
+        verify(smsAllowListDAO).isBanned(phoneNumber)
+        verifyZeroInteractions(smsSenderClient)
         verifyZeroInteractions(sessionAvailabilityNotifierDAO)
     }
 

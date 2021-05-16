@@ -57,10 +57,15 @@ class SessionSmsResponderHandler(
     fun handleRequest(origin: String, smsMessageBody: String) {
         log.info { "Received message: $smsMessageBody from: $origin" }
 
+        if (allowListEnabled && smsAllowListDAO.isBanned(origin)) {
+            log.warn { "$origin is banned, not responding" }
+            return
+        }
+
         if (allowListEnabled && !smsAllowListDAO.isAllowed(origin)) {
             log.warn { "$origin is not enabled for this resource. Banned: $origin to prevent further spam" }
             smsAllowListDAO.ban(origin)
-            smsSenderClient.sendMessage("Sorry you are not registered to use this service. Cannot complete request.", origin)
+            smsSenderClient.sendMessage("Sorry you are not registered to use this service. No further responses will be sent.", origin)
             return
         }
 

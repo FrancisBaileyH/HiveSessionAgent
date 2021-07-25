@@ -7,7 +7,7 @@ data class PinpointSMSEvent(
     val originationNumber: String,
     val messageBody: String,
     val inboundMessageId: String,
-    val previousPublishedMessageId: String?,
+    val previousPublishedMessageId: String? = "",
     val messageKeyword: String,
     val destinationNumber: String
 )
